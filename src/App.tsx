@@ -25,7 +25,7 @@ function ProtectedRoute({ children, skipOnboarding }: { children: React.ReactNod
     </div>
   );
   if (!user) return <Navigate to="/" replace />;
-  if (!skipOnboarding && profile && profile.avatar_key === 'default' && window.location.pathname !== '/onboarding') {
+  if (!skipOnboarding && (!profile || profile.avatar_key === 'default') && window.location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
   return <Layout>{children}</Layout>;

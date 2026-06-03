@@ -38,7 +38,7 @@ export default function Onboarding() {
   const steps = [
     { title: 'Escolha seu avatar', desc: 'Sua identidade na jornada' },
     { title: 'Defina seu objetivo', desc: 'O que você quer conquistar?' },
-    { title: 'Encontre sua Tribo', desc: 'Comunidades de ate 50 pessoas' },
+    { title: 'Encontre sua Tribo', desc: 'Comunidades de até 50 pessoas' },
     { title: 'Consentimento LGPD', desc: 'Privacidade em primeiro lugar' },
   ];
 
@@ -57,24 +57,57 @@ export default function Onboarding() {
   async function completeOnboarding() {
     if (!user || !lgpdConsent) return;
     setSaving(true);
-    await supabase.from('profiles').update({
-      avatar_key: selectedAvatar || 'default',
-      avatar_url: customAvatarUrl || null,
-      display_name: displayName || user.email?.split('@')[0] || 'Usuário',
-      substance_target: substanceTarget,
-      goal_type: goalType,
-      motivation,
-      tribe_id: selectedTribe || null,
-      experience_tier: 'beginner',
-      updated_at: new Date().toISOString(),
-    }).eq('id', user.id);
 
-    if (selectedTribe) {
-      await supabase.from('tribe_memberships').insert({ tribe_id: selectedTribe, user_id: user.id, role: 'member' });
+    try {
+      const updateData: Record<string, any> = {
+        avatar_key: selectedAvatar || 'default',
+        substance_target: substanceTarget,
+        goal_type: goalType,
+        motivation,
+        experience_tier: 'beginner',
+        updated_at: new Date().toISOString(),
+      };
+
+      if (customAvatarUrl) {
+        updateData.avatar_url = customAvatarUrl;
+      }
+
+      if (displayName) {
+        updateData.full_name = displayName;
+      }
+
+      if (selectedTribe) {
+        updateData.tribe_id = selectedTribe;
+      } else {
+        updateData.tribe_id = null;
+      }
+
+      await supabase.from('profiles').update(updateData).eq('id', user.id);
+
+      if (selectedTribe) {
+        const { data: existing } = await supabase
+          .from('tribe_memberships')
+          .select('id')
+          .eq('tribe_id', selectedTribe)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!existing) {
+          await supabase.from('tribe_memberships').insert({
+            tribe_id: selectedTribe,
+            user_id: user.id,
+            role: 'member',
+          });
+        }
+      }
+
+      await refreshProfile();
+      setSaving(false);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Erro ao completar onboarding:', error);
+      setSaving(false);
     }
-    await refreshProfile();
-    setSaving(false);
-    navigate('/dashboard');
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>;
