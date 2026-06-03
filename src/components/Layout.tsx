@@ -25,7 +25,8 @@ const navItems = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { profile, signOut, user } = useAuth();
-  const { onlineCount } = usePresence();
+  const presenceCtx = usePresence();
+  const onlineCount = presenceCtx?.onlineCount ?? 0;
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);

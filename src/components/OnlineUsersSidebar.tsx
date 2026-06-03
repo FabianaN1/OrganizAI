@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronRight, Users, X } from 'lucide-react';
 import { usePresence } from '../context/PresenceContext';
 
@@ -10,8 +10,13 @@ const AVATAR_MAP: Record<string, string> = {
 export default function OnlineUsersSidebar() {
   const { onlineUsers, onlineCount, isLoading } = usePresence();
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (isLoading) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || isLoading) return null;
 
   return (
     <>

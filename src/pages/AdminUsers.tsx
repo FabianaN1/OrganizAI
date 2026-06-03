@@ -21,30 +21,46 @@ export default function AdminUsers() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user?.email !== 'admin@maissaude.com') {
-      navigate('/dashboard');
-      return;
-    }
-    loadUsers();
+    // Verificar acesso de admin
+    const checkAdmin = async () => {
+      if (!user) {
+        navigate('/');
+        return;
+      }
+
+      if (user.email !== 'admin@maissaude.com') {
+        navigate('/dashboard');
+        return;
+      }
+
+      await loadUsers();
+    };
+
+    checkAdmin();
   }, [user, navigate]);
 
   async function loadUsers() {
     try {
       setLoading(true);
+      setError('');
+
       const { data, error: err } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (err) {
+        console.error('Erro ao carregar usuários:', err);
         setError('Erro ao carregar usuários: ' + err.message);
+        setUsers([]);
         return;
       }
 
       setUsers(data || []);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Erro inesperado:', err);
       setError('Erro inesperado ao carregar usuários');
-      console.error(err);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -53,8 +69,8 @@ export default function AdminUsers() {
   const isUserOnline = (userId: string) => onlineUsers.some((u) => u.id === userId);
 
   const filteredUsers = users.filter((u) =>
-    u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.id?.includes(searchTerm)
+    (u.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (u.id?.includes(searchTerm) || false)
   );
 
   if (loading) {
@@ -87,6 +103,12 @@ export default function AdminUsers() {
             <div>
               <p className="font-semibold">Erro ao carregar dados</p>
               <p className="text-sm mt-1">{error}</p>
+              <button
+                onClick={() => loadUsers()}
+                className="mt-2 text-red-600 hover:text-red-700 underline text-sm font-medium"
+              >
+                Tentar novamente
+              </button>
             </div>
           </div>
         )}
@@ -119,7 +141,7 @@ export default function AdminUsers() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Offline</p>
-                <p className="text-3xl font-bold text-gray-500 mt-2">{users.length - onlineUsers.length}</p>
+                <p className="text-3xl font-bold text-gray-500 mt-2">{Math.max(0, users.length - onlineUsers.length)}</p>
               </div>
               <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                 <LogOut className="text-gray-400" size={24} />
@@ -160,7 +182,7 @@ export default function AdminUsers() {
                 {filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                      Nenhum usuário encontrado
+                      {users.length === 0 ? 'Nenhum usuário registrado' : 'Nenhum usuário encontrado'}
                     </td>
                   </tr>
                 ) : (
@@ -177,7 +199,7 @@ export default function AdminUsers() {
                         <td className="px-6 py-4">
                           <p className="font-medium text-gray-900">{u.full_name || 'Sem nome'}</p>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{u.id}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600 truncate max-w-xs">{u.id}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{joinDate}</td>
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-medium">

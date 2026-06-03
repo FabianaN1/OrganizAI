@@ -23,83 +23,104 @@ const PresenceContext = createContext<PresenceContextType>({
 });
 
 export function PresenceProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !profile) {
       setOnlineUsers([]);
       setIsLoading(false);
       return;
     }
 
-    const channel = supabase.channel('online-users', {
-      config: {
-        presence: {
-          key: user.id,
-        },
-      },
-    });
+    let subscribed = true;
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const users: OnlineUser[] = [];
-        const seenIds = new Set<string>();
-
-        Object.entries(state).forEach(([, presences]) => {
-          (presences as any[]).forEach((presence) => {
-            if (presence.user && !seenIds.has(presence.user.id)) {
-              users.push(presence.user);
-              seenIds.add(presence.user.id);
-            }
-          });
+    const setupPresence = async () => {
+      try {
+        const channel = supabase.channel('online-users', {
+          config: {
+            presence: {
+              key: user.id,
+            },
+          },
         });
 
-        setOnlineUsers(users);
-        setIsLoading(false);
-      })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        const newUser = (newPresences as any[])?.[0]?.user;
-        if (newUser && !onlineUsers.find((u) => u.id === newUser.id)) {
-          setOnlineUsers((prev) => [...prev, newUser]);
-        }
-      })
-      .on('presence', { event: 'leave' }, ({ key }) => {
-        const state = channel.presenceState();
-        const remainingIds = new Set<string>();
+        channel
+          .on('presence', { event: 'sync' }, () => {
+            if (!subscribed) return;
+            const state = channel.presenceState();
+            const users: OnlineUser[] = [];
+            const seenIds = new Set<string>();
 
-        Object.entries(state).forEach(([, presences]) => {
-          (presences as any[]).forEach((presence) => {
-            if (presence.user) {
-              remainingIds.add(presence.user.id);
-            }
-          });
-        });
-
-        setOnlineUsers((prev) => prev.filter((u) => remainingIds.has(u.id)));
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          const userProfile = await supabase
-            .from('profiles')
-            .select('id, email, full_name, avatar_key, avatar_url')
-            .eq('id', user.id)
-            .maybeSingle();
-
-          if (userProfile.data) {
-            await channel.track({
-              user: userProfile.data,
+            Object.entries(state).forEach(([, presences]) => {
+              (presences as any[]).forEach((presence) => {
+                if (presence.user && !seenIds.has(presence.user.id)) {
+                  users.push(presence.user);
+                  seenIds.add(presence.user.id);
+                }
+              });
             });
-          }
-        }
-      });
+
+            setOnlineUsers(users);
+            setIsLoading(false);
+          })
+          .on('presence', { event: 'join' }, ({ newPresences }) => {
+            if (!subscribed) return;
+            const newUser = (newPresences as any[])?.[0]?.user;
+            if (newUser && !onlineUsers.find((u) => u.id === newUser.id)) {
+              setOnlineUsers((prev) => [...prev, newUser]);
+            }
+          })
+          .on('presence', { event: 'leave' }, () => {
+            if (!subscribed) return;
+            const state = channel.presenceState();
+            const remainingIds = new Set<string>();
+
+            Object.entries(state).forEach(([, presences]) => {
+              (presences as any[]).forEach((presence) => {
+                if (presence.user) {
+                  remainingIds.add(presence.user.id);
+                }
+              });
+            });
+
+            setOnlineUsers((prev) => prev.filter((u) => remainingIds.has(u.id)));
+          })
+          .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+              try {
+                await channel.track({
+                  user: {
+                    id: user.id,
+                    email: user.email || '',
+                    full_name: profile.full_name || 'Usuário',
+                    avatar_key: profile.avatar_key || 'default',
+                    avatar_url: profile.avatar_url || '',
+                  },
+                });
+              } catch (err) {
+                console.error('Erro ao rastrear presença:', err);
+              }
+            }
+          });
+
+        return () => {
+          subscribed = false;
+          channel.unsubscribe();
+        };
+      } catch (err) {
+        console.error('Erro ao configurar presença:', err);
+        setIsLoading(false);
+      }
+    };
+
+    const cleanup = setupPresence();
 
     return () => {
-      channel.unsubscribe();
+      cleanup.then((fn) => fn?.());
     };
-  }, [user, onlineUsers]);
+  }, [user?.id, profile?.id]);
 
   return (
     <PresenceContext.Provider value={{ onlineUsers, onlineCount: onlineUsers.length, isLoading }}>
