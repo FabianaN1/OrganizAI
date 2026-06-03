@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PresenceProvider } from './context/PresenceContext';
 import Layout from './components/Layout';
+import OnlineUsersSidebar from './components/OnlineUsersSidebar';
 import Landing from './pages/Landing';
 import Auth from './pages/Auth';
 import Onboarding from './pages/Onboarding';
@@ -16,6 +18,7 @@ import Library from './pages/Library';
 import Profile from './pages/Profile';
 import GettingStarted from './pages/GettingStarted';
 import AccessibilityPage from './pages/Accessibility';
+import AdminUsers from './pages/AdminUsers';
 
 function ProtectedRoute({ children, skipOnboarding }: { children: React.ReactNode; skipOnboarding?: boolean }) {
   const { user, profile, loading } = useAuth();
@@ -60,6 +63,7 @@ function AppRoutes() {
       <Route path="/getting-started" element={<ProtectedRoute><GettingStarted /></ProtectedRoute>} />
       <Route path="/accessibility" element={<ProtectedRoute><AccessibilityPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -69,7 +73,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <PresenceProvider>
+          <AppRoutes />
+          <OnlineUsersSidebar />
+        </PresenceProvider>
       </AuthProvider>
     </BrowserRouter>
   );
