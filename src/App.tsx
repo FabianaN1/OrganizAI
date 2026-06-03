@@ -19,6 +19,7 @@ import Profile from './pages/Profile';
 import GettingStarted from './pages/GettingStarted';
 import AccessibilityPage from './pages/Accessibility';
 import AdminUsers from './pages/AdminUsers';
+import SignupRecords from './pages/SignupRecords';
 
 function ProtectedRoute({ children, skipOnboarding }: { children: React.ReactNode; skipOnboarding?: boolean }) {
   const { user, profile, loading } = useAuth();
@@ -64,6 +65,7 @@ function AppRoutes() {
       <Route path="/accessibility" element={<ProtectedRoute><AccessibilityPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+      <Route path="/admin/registros" element={<ProtectedRoute><SignupRecords /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

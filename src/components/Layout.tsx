@@ -119,12 +119,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* Emergency + sign out */}
         <div className="p-4 border-t border-white/15 space-y-1.5">
           {isAdmin && (
-            <Link
-              to="/admin/users"
-              className="flex items-center gap-2 text-[13px] text-amber-300 hover:text-amber-200 transition-colors w-full px-4 py-2.5 rounded-xl hover:bg-amber-500/15 font-semibold"
-            >
-              <Shield size={16} /> Admin
-            </Link>
+            <>
+              <Link
+                to="/admin/users"
+                className="flex items-center gap-2 text-[13px] text-blue-300 hover:text-blue-200 transition-colors w-full px-4 py-2.5 rounded-xl hover:bg-blue-500/15 font-semibold"
+              >
+                <Users size={16} /> Usuários Online
+              </Link>
+              <Link
+                to="/admin/registros"
+                className="flex items-center gap-2 text-[13px] text-purple-300 hover:text-purple-200 transition-colors w-full px-4 py-2.5 rounded-xl hover:bg-purple-500/15 font-semibold"
+              >
+                <Shield size={16} /> Registros
+              </Link>
+            </>
           )}
           <button
             onClick={() => navigate('/getting-started')}
